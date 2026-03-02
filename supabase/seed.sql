@@ -1,0 +1,4 @@
+-- Seed data (optional — add test records here)
+-- Example:
+-- INSERT INTO books (user_id, title, author, file_type, status)
+-- VALUES ('your-user-uuid', 'Sample Book', 'Author Name', 'pdf', 'ready');
