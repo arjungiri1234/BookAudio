@@ -37,6 +37,16 @@ const useAuthStore = create((set) => ({
         await supabase.auth.signOut();
         set({ user: null, session: null });
     },
+
+    signInWithProvider: async (provider) => {
+        const { error } = await supabase.auth.signInWithOAuth({
+            provider,
+            options: {
+                redirectTo: `${window.location.origin}/dashboard`,
+            },
+        });
+        if (error) throw error;
+    },
 }));
 
 export default useAuthStore;

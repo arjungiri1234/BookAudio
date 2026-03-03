@@ -7,6 +7,7 @@ import {
     getBookById,
     deleteBook,
     getBookChunks,
+    searchBook,
 } from "../controllers/bookController.js";
 
 const router = Router();
@@ -19,5 +20,6 @@ router.get("/", getBooks);
 router.get("/:id", getBookById);
 router.delete("/:id", deleteBook);
 router.get("/:id/chunks", getBookChunks);
+router.post("/:id/search", searchBook);
 
 export default router;

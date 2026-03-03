@@ -26,7 +26,7 @@ export default function App() {
   return (
     <Router>
       <Toaster
-        position="top-right"
+        position="top-center"
         toastOptions={{
           duration: 3000,
           style: {
@@ -42,6 +42,7 @@ export default function App() {
         <Routes>
           <Route path="/" element={<Home />} />
           <Route path="/auth" element={<Auth />} />
+          <Route path="/explore" element={<Dashboard />} />
           <Route path="/dashboard" element={<Dashboard />} />
           <Route path="/book/:id" element={<BookDetail />} />
           <Route path="*" element={<Navigate to="/" replace />} />

@@ -50,30 +50,42 @@ export default function BookUploader({ onComplete }) {
     <div
       {...getRootProps()}
       id="dropzone"
-      className={`border-2 border-dashed rounded-2xl p-10 text-center cursor-pointer transition-all duration-300 ${isDragActive
-          ? "border-primary-400 bg-primary-500/5"
-          : "border-white/10 hover:border-white/20 bg-surface-900/30"
+      className={`relative overflow-hidden border-2 border-dashed rounded-2xl p-12 text-center cursor-pointer transition-all duration-300 ${isDragActive
+        ? "border-primary-400 bg-primary-50"
+        : "border-surface-300 hover:border-primary-300 bg-surface-100/50 hover:bg-surface-100"
         }`}
     >
       <input {...getInputProps()} />
-      <div className="flex flex-col items-center gap-3">
+      <div className="flex flex-col items-center gap-4 relative z-10">
         <div
-          className={`w-14 h-14 rounded-2xl flex items-center justify-center transition-colors ${isDragActive ? "bg-primary-500/20" : "bg-surface-800"
+          className={`w-16 h-16 rounded-2xl flex items-center justify-center transition-all duration-300 shadow-sm ${isDragActive
+            ? "bg-primary-600 scale-110 shadow-primary-600/20"
+            : "bg-white border border-surface-200"
             }`}
         >
           <HiOutlineCloudArrowUp
-            className={`w-7 h-7 ${isDragActive ? "text-primary-400" : "text-surface-200/50"}`}
+            className={`w-8 h-8 transition-colors ${isDragActive ? "text-white" : "text-primary-600"}`}
           />
         </div>
         <div>
-          <p className="font-medium text-white">
+          <p className="font-semibold text-surface-800 text-lg">
             {isDragActive ? "Drop the file here" : "Drag & drop your book here"}
           </p>
-          <p className="text-sm text-surface-200/50 mt-1">
-            or click to browse · PDF, EPUB, TXT · Max 50MB
+          <p className="text-sm text-surface-500 mt-1.5 font-medium">
+            or <span className="text-primary-600 underline underline-offset-2 decoration-primary-300">click to browse</span>
           </p>
+          <div className="flex items-center justify-center gap-2 mt-4 text-xs text-surface-400">
+            <span className="px-2 py-1 bg-white rounded-md border border-surface-200">PDF</span>
+            <span className="px-2 py-1 bg-white rounded-md border border-surface-200">EPUB</span>
+            <span className="px-2 py-1 bg-white rounded-md border border-surface-200">TXT</span>
+            <span className="mx-1">•</span>
+            <span>Max 50MB</span>
+          </div>
         </div>
       </div>
+
+      {/* Decorative background circle */}
+      <div className={`absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-64 h-64 bg-primary-200/20 rounded-full blur-[50px] transition-opacity duration-500 ${isDragActive ? "opacity-100" : "opacity-0"}`} />
     </div>
   );
 }

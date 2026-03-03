@@ -2,6 +2,7 @@ import { supabase } from "../config/supabase.js";
 import { parseBook } from "../services/bookParser.js";
 import { chunkText } from "../utils/chunker.js";
 import { generateEmbeddings } from "../services/embeddings.js";
+import { semanticSearch } from "../services/search.js";
 
 /**
  * POST /api/books/upload — Upload, parse, and index a book
@@ -16,6 +17,14 @@ export const uploadBook = async (req, res, next) => {
         const userId = req.userId;
         const fileType = originalname.split(".").pop().toLowerCase();
 
+        // Clean filename for use as a title: remove extension, replace separators, title-case
+        const cleanTitle = originalname
+            .replace(/\.[^/.]+$/, "")      // remove extension
+            .replace(/[-_]+/g, " ")        // replace hyphens/underscores with spaces
+            .replace(/\s+/g, " ")          // collapse multiple spaces
+            .trim()
+            .replace(/\b\w/g, (c) => c.toUpperCase()); // title case
+
         // 1. Upload to Supabase Storage
         const filePath = `${userId}/${Date.now()}_${originalname}`;
         const { error: uploadError } = await supabase.storage
@@ -26,12 +35,12 @@ export const uploadBook = async (req, res, next) => {
 
         const { data: urlData } = supabase.storage.from("books").getPublicUrl(filePath);
 
-        // 2. Create book record
+        // 2. Create book record with cleaned filename as initial title
         const { data: book, error: dbError } = await supabase
             .from("books")
             .insert({
                 user_id: userId,
-                title: originalname.replace(/\.[^/.]+$/, ""),
+                title: cleanTitle,
                 file_url: urlData.publicUrl,
                 file_type: fileType,
                 status: "processing",
@@ -42,7 +51,7 @@ export const uploadBook = async (req, res, next) => {
         if (dbError) throw dbError;
 
         // 3. Parse + chunk + embed in background
-        processBookAsync(book.id, buffer, fileType);
+        processBookAsync(book.id, buffer, fileType, cleanTitle);
 
         res.status(201).json(book);
     } catch (err) {
@@ -53,7 +62,7 @@ export const uploadBook = async (req, res, next) => {
 /**
  * Background processing — parse, chunk, embed
  */
-async function processBookAsync(bookId, buffer, fileType) {
+async function processBookAsync(bookId, buffer, fileType, cleanTitle) {
     try {
         // Parse text from file
         const { text, pages, metadata } = await parseBook(buffer, fileType);
@@ -65,15 +74,29 @@ async function processBookAsync(bookId, buffer, fileType) {
         await generateEmbeddings(bookId, chunks);
 
         // Update book status
+        const updateData = {
+            status: "ready",
+            total_pages: pages || null,
+            total_chunks: chunks.length,
+        };
+
+        // Use PDF/EPUB metadata title only if it's meaningful
+        const metaTitle = metadata?.title?.trim();
+        const skipTitles = ["untitled", "microsoft word", "unknown"];
+        if (metaTitle && metaTitle.length > 1 && !skipTitles.some(s => metaTitle.toLowerCase().includes(s))) {
+            updateData.title = metaTitle;
+        }
+        // Otherwise the cleanTitle from the filename (set at insert time) stays
+
+        // Author from metadata, or leave null
+        const metaAuthor = metadata?.author?.trim();
+        if (metaAuthor && metaAuthor.length > 1) {
+            updateData.author = metaAuthor;
+        }
+
         await supabase
             .from("books")
-            .update({
-                status: "ready",
-                total_pages: pages || null,
-                total_chunks: chunks.length,
-                author: metadata?.author || null,
-                title: metadata?.title || undefined,
-            })
+            .update(updateData)
             .eq("id", bookId);
 
         console.log(`✅ Book ${bookId} processed: ${chunks.length} chunks`);
@@ -156,6 +179,34 @@ export const getBookChunks = async (req, res, next) => {
 
         if (error) throw error;
         res.json(data);
+    } catch (err) {
+        next(err);
+    }
+};
+
+/**
+ * POST /api/books/:id/search — Semantic search within a book
+ * Used by the voice assistant for client-side tool call handling
+ */
+export const searchBook = async (req, res, next) => {
+    try {
+        const { query } = req.body;
+        const bookId = req.params.id;
+
+        if (!query) {
+            return res.status(400).json({ error: "query is required" });
+        }
+
+        const results = await semanticSearch(query, bookId);
+        res.json(
+            results.map((r) => ({
+                content: r.content,
+                page_number: r.page_number,
+                chapter_title: r.chapter_title,
+                section_title: r.section_title,
+                similarity: r.similarity,
+            }))
+        );
     } catch (err) {
         next(err);
     }
