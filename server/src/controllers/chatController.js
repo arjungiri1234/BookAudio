@@ -13,8 +13,13 @@ export const queryChat = async (req, res, next) => {
             return res.status(400).json({ error: "book_id and question are required" });
         }
 
-        // 1. Semantic search for relevant chunks
-        const relevantChunks = await semanticSearch(question, book_id);
+        // Check if the message is a casual/greeting message
+        const casualPatterns = /^(hi|hello|hey|howdy|good\s*(morning|afternoon|evening|night)|how\s*are\s*you|what'?s\s*up|sup|yo|bye|goodbye|thanks|thank\s*you|ok|okay|cool|nice|great|awesome)[!?.]*$/i;
+        const isCasual = casualPatterns.test(question.trim());
+
+        // 1. Semantic search for relevant chunks (skip for casual messages)
+        const relevantChunks = isCasual ? [] : await semanticSearch(question, book_id);
+        console.log(`🔍 Found ${relevantChunks.length} relevant chunks for: "${question}"${isCasual ? ' (casual)' : ''}`);
 
         // 2. Generate answer using LLM with context
         const answer = await generateAnswer(question, relevantChunks);
@@ -48,7 +53,7 @@ export const queryChat = async (req, res, next) => {
                 page_number: c.page_number,
                 chapter_title: c.chapter_title,
                 section_title: c.section_title,
-                content: c.content?.substring(0, 300),
+                content: c.content,
                 similarity: c.similarity,
             })),
         });

@@ -8,8 +8,15 @@ import { errorHandler } from "./middleware/errorHandler.js";
 const app = express();
 
 // ─── Middleware ────────────────────────────
+// VAPI webhooks come from external servers — allow all origins on those routes
+app.use("/api/vapi", cors());
 app.use(cors({
-    origin: process.env.CLIENT_URL || "http://localhost:5173",
+    origin: process.env.CLIENT_URL || [
+        "http://localhost:5173",
+        "http://localhost:5174",
+        "http://localhost:5175",
+        "http://localhost:5176",
+    ],
     credentials: true,
 }));
 app.use(express.json({ limit: "10mb" }));
@@ -21,9 +28,10 @@ app.get("/api/health", (req, res) => {
 });
 
 // ─── Routes ───────────────────────────────
+// VAPI routes first (no auth needed, open CORS)
+app.use("/api/vapi", vapiRoutes);
 app.use("/api/books", bookRoutes);
 app.use("/api/chat", chatRoutes);
-app.use("/api/vapi", vapiRoutes);
 
 // ─── 404 handler ──────────────────────────
 app.use((req, res) => {

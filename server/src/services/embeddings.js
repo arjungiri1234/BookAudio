@@ -1,7 +1,7 @@
-import { openai } from "../config/openai.js";
+import { genAI } from "../config/gemini.js";
 import { supabase } from "../config/supabase.js";
 
-const EMBEDDING_MODEL = "text-embedding-3-small";
+const EMBEDDING_MODEL = "gemini-embedding-001";
 const BATCH_SIZE = 20; // Process embeddings in batches
 
 /**
@@ -12,14 +12,17 @@ const BATCH_SIZE = 20; // Process embeddings in batches
 export async function generateEmbeddings(bookId, chunks) {
     console.log(`🔢 Generating embeddings for ${chunks.length} chunks...`);
 
+    const embeddingModel = genAI.getGenerativeModel({ model: EMBEDDING_MODEL });
+
     for (let i = 0; i < chunks.length; i += BATCH_SIZE) {
         const batch = chunks.slice(i, i + BATCH_SIZE);
         const texts = batch.map((c) => c.content);
 
-        // Generate embeddings via OpenAI
-        const response = await openai.embeddings.create({
-            model: EMBEDDING_MODEL,
-            input: texts,
+        // Generate embeddings via Gemini (batch embed) — 3072 dimensions
+        const result = await embeddingModel.batchEmbedContents({
+            requests: texts.map((text) => ({
+                content: { parts: [{ text }] },
+            })),
         });
 
         // Prepare rows for Supabase
@@ -30,7 +33,7 @@ export async function generateEmbeddings(bookId, chunks) {
             page_number: chunk.page_number,
             chapter_title: chunk.chapter_title,
             section_title: chunk.section_title,
-            embedding: response.data[j].embedding,
+            embedding: result.embeddings[j].values,
         }));
 
         // Insert into Supabase
