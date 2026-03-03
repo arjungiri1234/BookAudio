@@ -16,10 +16,7 @@ services:
         sync: false
       # This dynamically grabs the URL of the frontend we are deploying below!
       - key: CLIENT_URL
-        fromService:
-          type: web
-          name: bookaudio-client
-          property: url
+        sync: false
 
   # ─── FRONTEND SERVICE (React + Vite) ─────────
   - type: web
@@ -43,7 +40,4 @@ services:
         sync: false
       # This dynamically grabs the URL of the backend API deployed above!
       - key: VITE_API_URL
-        fromService:
-          type: web
-          name: bookaudio-server
-          property: url
+        sync: false
