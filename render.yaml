@@ -1,0 +1,49 @@
+services:
+  # ─── BACKEND SERVICE (Express API) ───────────
+  - type: web
+    name: bookaudio-server
+    env: node
+    rootDir: server
+    buildCommand: npm install
+    startCommand: npm start
+    envVars:
+      # Secrets to be provided in the Render Dashboard
+      - key: SUPABASE_URL
+        sync: false
+      - key: SUPABASE_SERVICE_ROLE_KEY
+        sync: false
+      - key: GEMINI_API_KEY
+        sync: false
+      # This dynamically grabs the URL of the frontend we are deploying below!
+      - key: CLIENT_URL
+        fromService:
+          type: web
+          name: bookaudio-client
+          envVar: RENDER_EXTERNAL_URL
+
+  # ─── FRONTEND SERVICE (React + Vite) ─────────
+  - type: web
+    name: bookaudio-client
+    env: static
+    rootDir: client
+    buildCommand: npm install && npm run build
+    staticPublishPath: dist
+    routes:
+      # Prevents React Router from throwing 404s on page refresh
+      - type: rewrite
+        source: /*
+        destination: /index.html
+    envVars:
+      # Secrets to be provided in the Render Dashboard
+      - key: VITE_SUPABASE_URL
+        sync: false
+      - key: VITE_SUPABASE_ANON_KEY
+        sync: false
+      - key: VITE_VAPI_PUBLIC_KEY
+        sync: false
+      # This dynamically grabs the URL of the backend API deployed above!
+      - key: VITE_API_URL
+        fromService:
+          type: web
+          name: bookaudio-server
+          envVar: RENDER_EXTERNAL_URL
