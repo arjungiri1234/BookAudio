@@ -19,7 +19,7 @@ services:
         fromService:
           type: web
           name: bookaudio-client
-          envVar: RENDER_EXTERNAL_URL
+          property: url
 
   # ─── FRONTEND SERVICE (React + Vite) ─────────
   - type: web
@@ -46,4 +46,4 @@ services:
         fromService:
           type: web
           name: bookaudio-server
-          envVar: RENDER_EXTERNAL_URL
+          property: url
